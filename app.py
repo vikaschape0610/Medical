@@ -1,8 +1,10 @@
 from flask import Flask, render_template, jsonify, request
 from src.helper import download_hugging_face_embeddings
 from langchain_pinecone import PineconeVectorStore
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
+# pyrefly: ignore [missing-import]
+from langchain_classic.chains import create_retrieval_chain
+# pyrefly: ignore [missing-import]
+from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 from src.prompt import *
@@ -17,24 +19,20 @@ load_dotenv(override=True)
 
 # Load and sanitize keys from .env
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY', '').strip().strip('"').strip("'")
-GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '').strip().strip('"').strip("'")
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '').strip().strip('"').strip("'")
 
-if not GOOGLE_API_KEY:
-    raise RuntimeError("GOOGLE_API_KEY is not set in .env")
+if not GROQ_API_KEY:
+    raise RuntimeError("GROQ_API_KEY is not set in .env")
 
 os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+os.environ["GROQ_API_KEY"] = GROQ_API_KEY
 
-# Ensure httpx/OpenAI clients have a valid CA bundle path before importing OpenAI clients
-import certifi
-ssl_cert = os.environ.get("SSL_CERT_FILE")
-if not ssl_cert or not os.path.isfile(ssl_cert):
-    os.environ["SSL_CERT_FILE"] = certifi.where()
 
 embeddings = download_hugging_face_embeddings()
 
-# Import Gemini after env vars are set
-from langchain_google_genai import ChatGoogleGenerativeAI
+# Import Groq after env vars are set
+# pyrefly: ignore [missing-import]
+from langchain_groq import ChatGroq
 
 
 index_name = "medical-chatbot" 
@@ -49,7 +47,7 @@ docsearch = PineconeVectorStore.from_existing_index(
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k":5})
 
 
-chatModel = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3)
+chatModel = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.3)
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
